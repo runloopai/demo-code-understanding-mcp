@@ -5,13 +5,16 @@ import os
 from runloop_api_client import Runloop
 import json
 
+# Initialize FastMCP server
+mcp = FastMCP("code-understanding")
+
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
 
 running_devboxes: dict[str, str] = {}
 
 oaikey = "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"
 
-generate_repo_map_cmd = f"cd /home/user/runloop-examples && wget -qO- https://aider.chat/install.sh | sh && aider --model o3-mini --api-key openai={oaikey} --show-repo-map | tee ./generated_repo_map.txt"
+generate_repo_map_cmd = f"cd /home/user/runloop-examples && wget -qO- https://aider.chat/install.sh | sh && touch ./generated_repo_map.txt && aider --model o3-mini --api-key openai=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 --yes-always --show-repo-map > ./generated_repo_map.txt"
 
 # Public devbox
 async def launch_devbox_with_code_mount(github_repo_link: str):
@@ -28,14 +31,6 @@ async def launch_devbox_with_code_mount(github_repo_link: str):
         )
         running_devboxes[github_repo_link] = dbx.id
         return dbx.id
-
-# execute command
-async def execute_command_on_devbox_fn(devbox_id: str, command: str):
-    devbox = await launch_devbox_with_code_mount(github_link)
-    return await runloop_client.devboxes.execute_sync(devbox_id, command=command)
-
-# Initialize FastMCP server
-mcp = FastMCP("code-understanding")
 
 async def generate_repo_map(github_link: str):
     devbox_id = await launch_devbox_with_code_mount(github_link)
