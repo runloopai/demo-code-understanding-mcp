@@ -8,8 +8,7 @@ import os
 COLLECTION_NAME = "github_prs"  
 
 class GitHubHistoryEmbedder:
-    def __init__(self, repo: str, chroma_collection: str = COLLECTION_NAME):
-        self.repo = repo
+    def __init__(self, chroma_collection: str = COLLECTION_NAME):
         self.chroma_client = chromadb.Client()
         self.collection = self.chroma_client.get_or_create_collection(chroma_collection)
         # Use OpenAI embedding function (requires OPENAI_API_KEY env var)
@@ -22,14 +21,14 @@ class GitHubHistoryEmbedder:
     def get_prs(self):
         # Get all PRs (closed and open) for the repo
         cmd = [
-            "gh", "pr", "list", "--state", "all", "--json", "number,title,body", "--repo", self.repo
+            "gh", "pr", "list", "--state", "all", "--json", "number,title,body"
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
 
     def get_pr_diff(self, pr_number):
         # Get the diff for a PR
-        cmd = ["gh", "pr", "diff", str(pr_number), "--repo", self.repo]
+        cmd = ["gh", "pr", "diff", str(pr_number)]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return result.stdout
 
@@ -76,13 +75,12 @@ def main():
 
     # Only semantic search command
     parser_search = subparsers.add_parser("semantic-search", help="Semantic search over PR embeddings")
-    parser_search.add_argument("repo", help="GitHub repo in the form owner/repo")
     parser_search.add_argument("--query", required=True, help="Search query")
     parser_search.add_argument("--top_k", type=int, default=5, help="Number of top results to return")
 
     args = parser.parse_args()
 
-    embedder = GitHubHistoryEmbedder(args.repo)    
+    embedder = GitHubHistoryEmbedder()    
 
     if args.command == "semantic-search":
         embedder.semantic_search(args.query, args.top_k)

@@ -46,11 +46,12 @@ async def launch_devbox_with_code_mount(github_repo_link: str):
                 "launch_commands": [
                     "sudo apt-get update",
                     "sudo apt-get install -y libsqlite3-dev",
-                    "pip install cased-kit"
+                    "pip install --user cased-kit openai chromadb",
                 ]
             },
             environment_variables={
-                "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY")
+                "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
+                "GH_TOKEN": os.environ.get("GH_TOKEN")
             }
         )
         runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("kit_cli.py", "r").read())
@@ -158,7 +159,7 @@ async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
     return result.stdout
 
 @mcp.tool()
-async def github_history_semantic_search(github_link: str, query: str, top_k: int = 5, collection: str = "github_prs"):
+async def github_history_semantic_search(github_link: str, query: str, top_k: int = 5):
     """
     Perform semantic search over the GitHub PR history embedding using ChromaDB.
     Args:
@@ -172,7 +173,7 @@ async def github_history_semantic_search(github_link: str, query: str, top_k: in
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
-    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/gh_cli.py semantic-search --query {query} --top_k {top_k} --collection {collection}")
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/gh_cli.py semantic-search --query \"{query}\" --top_k {top_k}")
     return result.stdout
 
 ### Initialize the server
