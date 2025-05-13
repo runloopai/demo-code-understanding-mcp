@@ -8,7 +8,7 @@ import json
 mcp = FastMCP("code-understanding")
 
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "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")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 running_devboxes: dict[str, dict[str, Any]] = {}
 
