@@ -159,7 +159,7 @@ async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
     return result.stdout
 
 @mcp.tool()
-async def github_history_semantic_search(github_link: str, query: str, top_k: int = 5):
+async def github_history_semantic_search(github_link: str, query: str, top_k: int = 1):
     """
     Perform semantic search over the GitHub PR history embedding using ChromaDB.
     Args:
