@@ -24,7 +24,10 @@ def get_kit_file_tree_path(repo_name: str):
     return f"{get_repo_path(repo_name)}/kit_file_tree.txt"
 
 def get_generated_repo_map_cmd(repo_name: str):
-    return f"cd {get_repo_path(repo_name)} && wget -qO- https://aider.chat/install.sh | sh && aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}"
+    return f"cd {get_repo_path(repo_name)} && \
+      wget -qO- https://aider.chat/install.sh | sh && \
+      export PATH=$PATH:~/.local/bin && \
+      aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}"
 
 
 # Public devbox
@@ -129,7 +132,6 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
     cmd = f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py extract-symbols"
     if file:
         cmd += f" --file {file}"
-    cmd += f" > ./kit_symbols.txt && cat ./kit_symbols.txt"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cmd)
     symbols = result.stdout
     return symbols
