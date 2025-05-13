@@ -146,28 +146,37 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
     symbols = result.stdout
     return symbols
 
-async def create_embedding_on_devbox(github_link: str, command: str):
+async def get_embedding_on_devbox(github_link: str):
     """
-    Create an embedding on the devbox and save it as a parquet file.
+    Get an embedding on the devbox and save it as a parquet file.
     
     Args:
         github_link: Link to the GitHub repository
-        command: Command to execute on the devbox
     Returns:
         Path to the saved parquet file
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
-    
-    # Initialize repo and create embeddings
-    repo = Repository(get_repo_path(repo_name))
-    repo_index = repo.index(embed_fn=openai_embed)
-    
-    # Save embeddings to parquet
-    parquet_path = f"/home/user/{repo_name}_embeddings.parquet"
-    await runloop_client.devboxes.write_file_contents(devbox_id, file_path=parquet_path, contents=repo_index.to_parquet())
-    return parquet_path
+
+    try:
+        json_path = f"/home/user/{repo_name}_embeddings.json"
+        await runloop_client.devboxes.read_file_contents(devbox_id, file_path=json_path)
+        # If we get here, file exists
+        return json_path
+    except:
+        # File doesn't exist, create new embeddings
+        json_path = await create_embedding_on_devbox(github_link)
+        
+        # Initialize repo and create embeddings
+        repo = Repository(get_repo_path(repo_name))
+        repo_index = repo.index(embed_fn=openai_embed)
+        
+        # Save embeddings as JSON since it's a dictionary
+        json_path = f"/home/user/{repo_name}_embeddings.json"
+        json_contents = json.dumps(repo_index)
+        await runloop_client.devboxes.write_file_contents(devbox_id, file_path=json_path, contents=json_contents)
+        return json_path
 
 @mcp.tool()
 async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
@@ -181,26 +190,10 @@ async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
         List of top matching code snippets with file and score.
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
-    repo_name = devbox_info["repo_name"]
-    
-    # Initialize repo and index on devbox
-    repo = Repository(get_repo_path(repo_name))
-    repo.index(embed_fn=openai_embed)
-    
-    # Perform semantic search
-    results = repo.search_semantic(query=query, top_k=top_k, embed_fn=openai_embed)
-    
-    return json.dumps(results)
-
-@mcp.tool()
-def semantic_code_search_with_context(repo_path: str, query: str, top_k: int = 5):
-    """
-    Perform semantic search over a code repository using OpenAI embeddings.
-    """
-    repo = Repository(repo_path)
-    repo.index(embed_fn=openai_embed)
-    results = repo.search_semantic(query=query, top_k=top_k, embed_fn=openai_embed)
-    return json.dumps(results)
+    devbox_id = devbox_info["id"]
+    json_path = await get_embedding_on_devbox(github_link)
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py semantic-code-search {query} {top_k} {json_path}")
+    return result.stdout
 
 ### Initialize the server
 

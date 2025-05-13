@@ -17,6 +17,13 @@ def main():
     parser_symbols.add_argument("--repo_path", help="Path to the code repository (local directory or git URL)", required=False, default=".")
     parser_symbols.add_argument("--file", nargs="?", default=None, help="Optional file path (relative to repo root) to extract symbols from")
 
+    # semantic-code-search command
+    parser_semantic_code_search = subparsers.add_parser("semantic-code-search", help="Perform semantic code search over the repository")
+    parser_semantic_code_search.add_argument("--repo_path", help="Path to the code repository (local directory or git URL)", required=False, default=".")
+    parser_semantic_code_search.add_argument("--query", help="Query to search for", required=True)
+    parser_semantic_code_search.add_argument("--top_k", help="Number of top results to return", required=False, default=5)
+    parser_semantic_code_search.add_argument("--json_path", help="Path to the JSON file containing the embeddings", required=False, default=None)
+
     args = parser.parse_args()
     repo = Repository(args.repo_path)
 
@@ -31,9 +38,15 @@ def main():
             symbols = repo.extract_symbols()
         sys.stdout.write(json.dumps(symbols, indent=2) + "\n")
         sys.stdout.flush()
+    elif args.command == "semantic-code-search":
+        if args.json_path:
+            results = repo.search_semantic(args.query, args.top_k, args.json_path)
+        else:
+            results = repo.search_semantic(args.query, args.top_k)
+        sys.stdout.write(json.dumps(results, indent=2) + "\n")
+        sys.stdout.flush()
     else:
         parser.print_help()
-
 
 if __name__ == "__main__":
     main()
