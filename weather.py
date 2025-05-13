@@ -8,46 +8,70 @@ import json
 mcp = FastMCP("code-understanding")
 
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") or "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"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "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")
 
-running_devboxes: dict[str, str] = {}
-devbox_information: dict[str, dict[str, Any]] = {}
+running_devboxes: dict[str, dict[str, Any]] = {}
 
-generate_repo_map_cmd = f"cd /home/user/runloop-examples && wget -qO- https://aider.chat/install.sh | sh && touch ./generated_repo_map.txt && aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --show-repo-map > ./generated_repo_map.txt"
+# Helper functions for paths
+def get_repo_path(repo_name: str):
+    return f"/home/user/{repo_name}"
+
+
+def get_generated_repo_map_path(repo_name: str):
+    return f"{get_repo_path(repo_name)}/generated_repo_map.txt"
+
+def get_kit_file_tree_path(repo_name: str):
+    return f"{get_repo_path(repo_name)}/kit_file_tree.txt"
+
+def get_generated_repo_map_cmd(repo_name: str):
+    return f"cd {get_repo_path(repo_name)} && wget -qO- https://aider.chat/install.sh | sh && aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}"
+
 
 # Public devbox
 async def launch_devbox_with_code_mount(github_repo_link: str):
     if github_repo_link in running_devboxes:
         return running_devboxes[github_repo_link]
     else:
+        repo_name = github_repo_link.split("/")[-1]
+        repo_owner = github_repo_link.split("/")[-2]
         dbx = runloop_client.devboxes.create_and_await_running(
             code_mounts=[{
-                "repo_name": github_repo_link.split("/")[-1],
-                "repo_owner": github_repo_link.split("/")[-2],
+                "repo_name": repo_name,
+                "repo_owner": repo_owner,
             }],
             launch_parameters={
                 "launch_commands": [
+                    "sudo apt-get update",
                     "sudo apt-get install -y libsqlite3-dev",
                     "pip install cased-kit"
                 ]
             }
         )
         runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("kit_cli.py", "r").read())
-        running_devboxes[github_repo_link] = dbx.id
-        return dbx.id
+        running_devboxes[github_repo_link] = {
+            "id": dbx.id,
+            "repo_map_path": get_generated_repo_map_path(repo_name),
+            "file_tree_path": get_kit_file_tree_path(repo_name),
+            "repo_name": repo_name,
+            "repo_owner": repo_owner
+        }
+        return running_devboxes[github_repo_link]
 
 async def generate_repo_map(github_link: str):
-    devbox_id = await launch_devbox_with_code_mount(github_link)
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_map_path = devbox_info["repo_map_path"]
+    repo_name = devbox_info["repo_name"]
     # Check if repo map exists, if not generate it
-    check_file_cmd = "test -f /home/user/runloop-examples/generated_repo_map.txt && echo 'exists' || echo 'not found'"
+    check_file_cmd = f"test -f {repo_map_path} && echo 'exists' || echo 'not found'"
     check_result = runloop_client.devboxes.execute_sync(devbox_id, command=check_file_cmd)
     
     if "not found" in check_result.stdout:
         # Generate the repo map
-        runloop_client.devboxes.execute_sync(devbox_id, command=generate_repo_map_cmd)
+        runloop_client.devboxes.execute_sync(devbox_id, command=get_generated_repo_map_cmd(repo_name))
     
     # Read and return the repo map contents
-    cat_cmd = "cat /home/user/runloop-examples/generated_repo_map.txt"
+    cat_cmd = f"cat {repo_map_path}"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cat_cmd)
     repo_map = result.stdout
     return repo_map
@@ -63,7 +87,8 @@ async def execute_command_on_devbox(github_link: str, command: str):
         github_link: link to a github repo
         command: command to execute on the devbox
     """
-    devbox_id = await launch_devbox_with_code_mount(github_link)
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
     result = runloop_client.devboxes.execute_sync(devbox_id, command=command)
     return json.dumps(result.model_dump()) 
 
@@ -81,9 +106,11 @@ async def run_kit_cli_get_file_tree(github_link: str):
     """
     Run the kit cli with the file-tree argument to return a json object of the file tree.
     """
-    devbox_id = await launch_devbox_with_code_mount(github_link)
-
-    result = runloop_client.devboxes.execute_sync(devbox_id, command="cd /home/user/runloop-examples && python /home/user/kit_cli.py file-tree > ./kit_file_tree.txt && cat ./kit_file_tree.txt")
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_name = devbox_info["repo_name"]
+    file_tree_path = devbox_info["file_tree_path"]
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py file-tree > {file_tree_path} && cat {file_tree_path}")
     file_tree = result.stdout
     return file_tree
 
@@ -96,13 +123,13 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
         github_link: Link to the GitHub repository
         file: Optional file path relative to repo root to extract symbols from
     """
-    devbox_id = await launch_devbox_with_code_mount(github_link)
-    
-    cmd = "cd /home/user/runloop-examples && python /home/user/kit_cli.py extract-symbols"
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_name = devbox_info["repo_name"]
+    cmd = f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py extract-symbols"
     if file:
         cmd += f" --file {file}"
-    cmd += " > ./kit_symbols.txt && cat ./kit_symbols.txt"
-    
+    cmd += f" > ./kit_symbols.txt && cat ./kit_symbols.txt"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cmd)
     symbols = result.stdout
     return symbols
