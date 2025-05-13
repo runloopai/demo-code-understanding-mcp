@@ -3,12 +3,15 @@ from mcp.server.fastmcp import FastMCP
 import os
 from runloop_api_client import Runloop
 import json
+import openai
+from kit import Repository
 
 # Initialize FastMCP server
 mcp = FastMCP("code-understanding")
 
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
 running_devboxes: dict[str, dict[str, Any]] = {}
 
@@ -29,6 +32,13 @@ def get_generated_repo_map_cmd(repo_name: str):
       export PATH=$PATH:~/.local/bin && \
       aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}"
 
+# OpenAI embedding function
+def openai_embed(texts):
+    response = openai.embeddings.create(
+        input=texts,
+        model="text-embedding-3-small"
+    )
+    return [record['embedding'] for record in response['data']]
 
 # Public devbox
 async def launch_devbox_with_code_mount(github_repo_link: str):
@@ -136,6 +146,61 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
     symbols = result.stdout
     return symbols
 
+async def create_embedding_on_devbox(github_link: str, command: str):
+    """
+    Create an embedding on the devbox and save it as a parquet file.
+    
+    Args:
+        github_link: Link to the GitHub repository
+        command: Command to execute on the devbox
+    Returns:
+        Path to the saved parquet file
+    """
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_name = devbox_info["repo_name"]
+    
+    # Initialize repo and create embeddings
+    repo = Repository(get_repo_path(repo_name))
+    repo_index = repo.index(embed_fn=openai_embed)
+    
+    # Save embeddings to parquet
+    parquet_path = f"/home/user/{repo_name}_embeddings.parquet"
+    await runloop_client.devboxes.write_file_contents(devbox_id, file_path=parquet_path, contents=repo_index.to_parquet())
+    return parquet_path
+
+@mcp.tool()
+async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
+    """
+    Perform semantic search over a code repository using OpenAI embeddings.
+    Args:
+        repo_path: Path to the local code repository
+        query: Natural language search query
+        top_k: Number of top results to return
+    Returns:
+        List of top matching code snippets with file and score.
+    """
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    repo_name = devbox_info["repo_name"]
+    
+    # Initialize repo and index on devbox
+    repo = Repository(get_repo_path(repo_name))
+    repo.index(embed_fn=openai_embed)
+    
+    # Perform semantic search
+    results = repo.search_semantic(query=query, top_k=top_k, embed_fn=openai_embed)
+    
+    return json.dumps(results)
+
+@mcp.tool()
+def semantic_code_search_with_context(repo_path: str, query: str, top_k: int = 5):
+    """
+    Perform semantic search over a code repository using OpenAI embeddings.
+    """
+    repo = Repository(repo_path)
+    repo.index(embed_fn=openai_embed)
+    results = repo.search_semantic(query=query, top_k=top_k, embed_fn=openai_embed)
+    return json.dumps(results)
 
 ### Initialize the server
 
