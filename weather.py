@@ -56,6 +56,7 @@ async def launch_devbox_with_code_mount(github_repo_link: str):
         )
         runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("kit_cli.py", "r").read())
         runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/gh_cli.py", contents=open("gh_cli.py", "r").read())
+        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/traced_pytest_cli.py", contents=open("traced_pytest_cli.py", "r").read())
         running_devboxes[github_repo_link] = {
             "id": dbx.id,
             "repo_map_path": get_generated_repo_map_path(repo_name),
@@ -155,7 +156,7 @@ async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
-    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py semantic-code-search --query {query} --top_k {top_k}")
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py semantic-code-search --query \"{query}\" --top_k {top_k}")
     return result.stdout
 
 @mcp.tool()
@@ -176,7 +177,24 @@ async def github_history_semantic_search(github_link: str, query: str, top_k: in
     result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/gh_cli.py semantic-search --query \"{query}\" --top_k {top_k}")
     return result.stdout
 
-### Initialize the server
+@mcp.tool()
+async def run_pytest_call_trace(github_link: str, test_name: str):
+    """
+    Run traced_pytest_cli.py in the devbox to get the call trace for a specific Python test.
+    Args:
+        github_link: Link to the GitHub repository
+        test_name: The name of the test function to trace (e.g., test_my_feature)
+    Returns:
+        The call trace output as a string.
+    """
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_name = devbox_info["repo_name"]
+    # Run traced_pytest_cli.py with pytest to run the specific test
+    cmd = f"cd {get_repo_path(repo_name)} && python /home/user/traced_pytest_cli.py -k {test_name}"
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=cmd)
+    return result.stdout
+
 
 if __name__ == "__main__":
     # Initialize and run the server
