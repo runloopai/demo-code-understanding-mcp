@@ -9,6 +9,7 @@ import json
 mcp = FastMCP("code-understanding")
 
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 running_devboxes: dict[str, dict[str, Any]] = {}
 
@@ -54,9 +55,9 @@ async def launch_devbox_with_code_mount(github_repo_link: str):
                 "GH_TOKEN": os.environ.get("GH_TOKEN")
             }
         )
-        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("kit_cli.py", "r").read())
-        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/gh_cli.py", contents=open("gh_cli.py", "r").read())
-        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/traced_pytest_cli.py", contents=open("traced_pytest_cli.py", "r").read())
+        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("cli/kit_cli.py", "r").read())
+        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/gh_cli.py", contents=open("cli/gh_cli.py", "r").read())
+        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/traced_pytest_cli.py", contents=open("cli/traced_pytest_cli.py", "r").read())
         running_devboxes[github_repo_link] = {
             "id": dbx.id,
             "repo_map_path": get_generated_repo_map_path(repo_name),
