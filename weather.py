@@ -4,18 +4,17 @@ import os
 from runloop_api_client import Runloop
 import json
 
+
 # Initialize FastMCP server
 mcp = FastMCP("code-understanding")
 
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 running_devboxes: dict[str, dict[str, Any]] = {}
 
 # Helper functions for paths
 def get_repo_path(repo_name: str):
     return f"/home/user/{repo_name}"
-
 
 def get_generated_repo_map_path(repo_name: str):
     return f"{get_repo_path(repo_name)}/generated_repo_map.txt"
@@ -28,6 +27,7 @@ def get_generated_repo_map_cmd(repo_name: str):
       wget -qO- https://aider.chat/install.sh | sh && \
       export PATH=$PATH:~/.local/bin && \
       aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}"
+
 
 
 # Public devbox
@@ -46,11 +46,16 @@ async def launch_devbox_with_code_mount(github_repo_link: str):
                 "launch_commands": [
                     "sudo apt-get update",
                     "sudo apt-get install -y libsqlite3-dev",
-                    "pip install cased-kit"
+                    "pip install --user cased-kit openai chromadb",
                 ]
+            },
+            environment_variables={
+                "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
+                "GH_TOKEN": os.environ.get("GH_TOKEN")
             }
         )
         runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("kit_cli.py", "r").read())
+        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/gh_cli.py", contents=open("gh_cli.py", "r").read())
         running_devboxes[github_repo_link] = {
             "id": dbx.id,
             "repo_map_path": get_generated_repo_map_path(repo_name),
@@ -136,6 +141,40 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
     symbols = result.stdout
     return symbols
 
+@mcp.tool()
+async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
+    """
+    Perform semantic search over a code repository using OpenAI embeddings.
+    Args:
+        repo_path: Path to the local code repository
+        query: Natural language search query
+        top_k: Number of top results to return
+    Returns:
+        List of top matching code snippets with file and score.
+    """
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_name = devbox_info["repo_name"]
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py semantic-code-search --query {query} --top_k {top_k}")
+    return result.stdout
+
+@mcp.tool()
+async def github_history_semantic_search(github_link: str, query: str, top_k: int = 1):
+    """
+    Perform semantic search over the GitHub PR history embedding using ChromaDB.
+    Args:
+        github_link: GitHub repo in the form owner/repo
+        query: Natural language search query
+        top_k: Number of top results to return
+        collection: ChromaDB collection name (default: github_prs)
+    Returns:
+        JSON string of top matching PRs with metadata and score.
+    """
+    devbox_info = await launch_devbox_with_code_mount(github_link)
+    devbox_id = devbox_info["id"]
+    repo_name = devbox_info["repo_name"]
+    result = runloop_client.devboxes.execute_sync(devbox_id, command=f"cd {get_repo_path(repo_name)} && python /home/user/gh_cli.py semantic-search --query \"{query}\" --top_k {top_k}")
+    return result.stdout
 
 ### Initialize the server
 
