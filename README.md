@@ -38,10 +38,10 @@ See [https://modelcontextprotocol.io/quickstart/user](https://modelcontextprotoc
 
 ## Available Tools
 
-- **Semantic Search over PR History**: Search PRs using natural language queries.
-- **Python Test Call Tracing**: Trace the call tree of a Python test.
-- **Codebase Exploration**: Use `kit_cli` for file tree, symbol extraction, and semantic code search.
+- **Semantic Search over PR History**: Search PRs using natural language queries, via `gh_cli`.
+- **Python Test Call Tracing**: Trace the call tree of a Python test, via `cli/traced_pytest_cli.py`
+- **Codebase Exploration**: Use `cli/kit_cli` for file tree, symbol extraction, and semantic code search.
 
 ---
 
-For more details, see the code and docstrings in `weather.py`, `gh_cli.py`, and `cli/kit_cli.py`.
+For more details, read the code and docstrings (or deploy this MCP on this repo!).
