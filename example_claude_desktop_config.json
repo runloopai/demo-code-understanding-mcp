@@ -2,15 +2,11 @@
   "mcpServers": {
     "code-understanding": {
       "command": "/PATH_TO_YOUR_VENV/bin/uv",
-      "args": [
-        "--directory",
-        "/FOLDER_PATH",
-        "run",
-        "rl_code_understanding_mcp.py"
-      ],
+      "args": ["--directory", "/CURRENT_FOLDER_PATH", "run", "runloop_mcp.py"],
       "env": {
         "RUNLOOP_API_KEY": "YOUR_RUNLOOP_API_KEY",
-        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY",
+        "GH_TOKEN": "YOUR_GH_TOKEN"
       }
     }
   }
