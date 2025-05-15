@@ -39,14 +39,16 @@ See [https://modelcontextprotocol.io/quickstart/user](https://modelcontextprotoc
 
 ## Running the mcp server
 
-You can run `runloop_snapshot_setup.py` to add a fully configured snapshot to your account.
+Running `runloop_snapshot_setup.py` to add a fully configured snapshot to your account. The snapshot will have all the required libraries for the MCP server to operate on your repository. Running the MCP without this setup step will still work as expected, it may take a few moments longer for a new devbox to be set up with the required libraries before a command can fully execute.
+
+We use Claude internally to connect to MCP servers. If the server is configured correctly, tools should be available in the Claude Desktop client and 4 prompts will be available as templates for accessing information about your repo via Claude Desktop.
 
 
 ## Available Tools
 
-- **Semantic Search over PR History**: Search PRs using natural language queries, via `gh_cli`.
-- **Python Test Call Tracing**: Trace the call tree of a Python test, via `cli/traced_pytest_cli.py`
-- **Codebase Exploration**: Use `cli/kit_cli` for file tree, symbol extraction, and semantic code search.
+- **Historical context**: Search PRs using natural language queries, via `cli/gh_cli.py`.
+- **Dynamic context**: Trace the call tree of a Python test and follow the execution dynamically, via `cli/traced_pytest_cli.py`
+- **Static context**: Use `cli/kit_cli.py` for file tree, symbol extraction, and semantic code search.
 
 ---
 
