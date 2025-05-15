@@ -43,6 +43,7 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
     snapshots_list = runloop_client.devboxes.list_disk_snapshots(
         extra_query={"search": "runloop-example-code-understanding-with-mcp"}
     )
+    dbx_name = f"{repo_name}-mcp-understanding-devbox"
 
     if (
         snapshots_list
@@ -52,10 +53,12 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
     ):
 
         snapshot = snapshots_list.snapshots[0]
-        dbx = runloop_client.devboxes.create_and_await_running(snapshot_id=snapshot.id)
+        dbx = runloop_client.devboxes.create_and_await_running(
+            snapshot_id=snapshot.id, name=dbx_name
+        )
     else:
         print("No snapshot found, setting up new devbox")
-        dbx = setup_devbox()
+        dbx = setup_devbox(dbx_name)
         print(f"Devbox created: {dbx}")
 
     print(f"Cloning repo {github_repo_link}")

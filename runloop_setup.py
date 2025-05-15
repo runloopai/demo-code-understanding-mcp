@@ -8,16 +8,19 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 GH_TOKEN = os.environ.get("GH_TOKEN")
 
 
-def setup_devbox():
+def setup_devbox(name: str | None = None):
     dbx = runloop_client.devboxes.create_and_await_running(
-        name="runloop-example-code-understanding-with-mcp",
+        name=name or "runloop-example-code-understanding-with-mcp",
         launch_parameters={
             "launch_commands": [
                 "sudo apt-get update",
                 "sudo apt-get install -y libsqlite3-dev",
+                "echo 'Installing pip dependencies cased-kit, openai, chromadb'",
                 "pip install --user cased-kit openai chromadb",
-                "wget -qO- https://aider.chat/install.sh | sh",
-                "export PATH=$PATH:~/.local/bin",
+                "echo 'Installing aider'",
+                "echo 'Setting up environment variables'",
+                "echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc",  # Add to .bashrc
+                "source ~/.bashrc",  # Reload the profile
             ]
         },
         environment_variables={
@@ -26,6 +29,7 @@ def setup_devbox():
         },
         metadata={"github_repo": "runloopai/runloop-example-code-understanding"},
     )
+    print(f"Devbox created: {dbx.id}, proceeding to copy CLI files...")
 
     # Copy CLI files with error handling
     cli_files = {
@@ -47,6 +51,8 @@ def setup_devbox():
                 )
         except Exception as e:
             print(f"Error copying {source_path}: {str(e)}", file=sys.stderr)
+
+    print("CLI files copied to devbox, proceeding to test setup command...")
 
     runloop_client.devboxes.execute_sync(
         dbx.id,
