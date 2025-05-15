@@ -1,12 +1,179 @@
 from typing import Any
 from mcp.server.fastmcp import FastMCP
+import mcp.types as types
 import os
 from runloop_api_client import Runloop
 import json
 
+# Define available prompts
+PROMPTS = {
+    "semantic-pr-search": types.Prompt(
+        name="semantic-pr-search",
+        description="Search GitHub pull requests using a natural language query.",
+        arguments=[
+            types.PromptArgument(
+                name="query",
+                description="Natural language search query",
+                required=True
+            ),
+            types.PromptArgument(
+                name="top_k",
+                description="Number of top results to return",
+                required=False
+            ),
+        ],
+    ),
+    "python-test-call-trace": types.Prompt(
+        name="python-test-call-trace",
+        description="Trace the function call tree of a specific Python test.",
+        arguments=[
+            types.PromptArgument(
+                name="test_name",
+                description="Name of the test function to trace (e.g., test_my_feature)",
+                required=True
+            ),
+            types.PromptArgument(
+                name="github_link",
+                description="GitHub repository link (if using devbox)",
+                required=True
+            ),
+        ],
+    ),
+    "kit-file-tree": types.Prompt(
+        name="kit-file-tree",
+        description="Show the file tree of a repository using kit_cli.",
+        arguments=[
+            types.PromptArgument(
+                name="github_link",
+                description="GitHub repository link",
+                required=True
+            ),
+        ],
+    ),
+    "kit-extract-symbols": types.Prompt(
+        name="kit-extract-symbols",
+        description="Extract code symbols from a repository or file using kit_cli.",
+        arguments=[
+            types.PromptArgument(
+                name="github_link",
+                description="GitHub repository link",
+                required=True
+            ),
+            types.PromptArgument(
+                name="file",
+                description="Optional file path (relative to repo root) to extract symbols from",
+                required=False
+            ),
+        ],
+    ),
+    "kit-semantic-code-search": types.Prompt(
+        name="kit-semantic-code-search",
+        description="Perform semantic code search over a repository using kit_cli.",
+        arguments=[
+            types.PromptArgument(
+                name="github_link",
+                description="GitHub repository link",
+                required=True
+            ),
+            types.PromptArgument(
+                name="query",
+                description="Natural language search query",
+                required=True
+            ),
+            types.PromptArgument(
+                name="top_k",
+                description="Number of top results to return",
+                required=False
+            ),
+        ],
+    ),
+}
 
 # Initialize FastMCP server
 mcp = FastMCP("code-understanding")
+
+@ mcp.list_prompts()
+async def list_prompts() -> list[types.Prompt]:
+    return list(PROMPTS.values())
+
+@ mcp.get_prompt()
+async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> types.GetPromptResult:
+    if name not in PROMPTS:
+        raise ValueError(f"Prompt not found: {name}")
+    # Example: just echo the arguments in the prompt message
+    args = arguments or {}
+    if name == "semantic-pr-search":
+        query = args.get("query", "")
+        top_k = args.get("top_k", "5")
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Search GitHub PRs for: {query}\nReturn top {top_k} results."
+                    )
+                )
+            ]
+        )
+    if name == "python-test-call-trace":
+        test_name = args.get("test_name", "")
+        github_link = args.get("github_link", "")
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Trace the call tree for test '{test_name}' in repo {github_link}."
+                    )
+                )
+            ]
+        )
+    if name == "kit-file-tree":
+        github_link = args.get("github_link", "")
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Show the file tree for repo {github_link}."
+                    )
+                )
+            ]
+        )
+    if name == "kit-extract-symbols":
+        github_link = args.get("github_link", "")
+        file = args.get("file", None)
+        file_part = f" in file {file}" if file else ""
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Extract code symbols from repo {github_link}{file_part}."
+                    )
+                )
+            ]
+        )
+    if name == "kit-semantic-code-search":
+        github_link = args.get("github_link", "")
+        query = args.get("query", "")
+        top_k = args.get("top_k", "5")
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Semantic code search in repo {github_link} for: {query}\nReturn top {top_k} results."
+                    )
+                )
+            ]
+        )
+    raise ValueError("Prompt implementation not found")
 
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
