@@ -196,35 +196,73 @@ def get_generated_repo_map_cmd(repo_name: str):
       export PATH=$PATH:~/.local/bin && \
       aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}"
 
-
-
 # Public devbox
+async def setup_devbox_with_code_mount(github_repo_link: str):
+    repo_name = github_repo_link.split("/")[-1]
+    repo_owner = github_repo_link.split("/")[-2]
+
+    shared_name = f"{repo_owner}-{repo_name}-initial-setup"
+    # check if devbox exists
+    devboxes_list = runloop_client.devboxes.list(extra_query={"search": shared_name}, status="running")
+    if devboxes_list and len(devboxes_list.devboxes) > 0:
+        return devboxes_list.devboxes[0]
+
+    # check if snapshot exists
+    snapshots_list = runloop_client.devboxes.list_disk_snapshots(extra_query={"search": shared_name})
+    if snapshots_list and len(snapshots_list.snapshots) > 0:
+        snapshot = snapshots_list.snapshots[0]
+        dbx = runloop_client.devboxes.create_and_await_running(snapshot_id=snapshot.id)
+        return dbx
+
+    # create new devbox
+    dbx = runloop_client.devboxes.create_and_await_running(
+        code_mounts=[{
+            "repo_name": repo_name,
+            "repo_owner": repo_owner,
+        }],
+        launch_parameters={
+            "launch_commands": [
+                "sudo apt-get update",
+                "sudo apt-get install -y libsqlite3-dev",
+                "pip install --user cased-kit openai chromadb",
+            ]
+        },
+        environment_variables={
+            "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
+            "GH_TOKEN": os.environ.get("GH_TOKEN")
+        },
+        metadata={
+            "repo_name": repo_name,
+            "repo_owner": repo_owner,
+            "github_repo_link": github_repo_link
+        }
+    )
+    runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("cli/kit_cli.py", "r").read())
+    runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/gh_cli.py", contents=open("cli/gh_cli.py", "r").read())
+    runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/traced_pytest_cli.py", contents=open("cli/traced_pytest_cli.py", "r").read())
+    # Create a snapshot with descriptive name and metadata using snapshot_disk
+    snapshot_description = f"Initial setup for repo {repo_owner}/{repo_name} from {github_repo_link}"
+    snapshot_metadata = {
+        "repo_name": repo_name,
+        "repo_owner": repo_owner,
+        "github_repo_link": github_repo_link,
+        "description": snapshot_description
+    }
+    snapshot = runloop_client.devboxes.snapshot_disk(
+        dbx.id,
+        name=shared_name,
+        description=snapshot_description,
+        metadata=snapshot_metadata
+    )
+    return dbx
+
 async def launch_devbox_with_code_mount(github_repo_link: str):
     if github_repo_link in running_devboxes:
         return running_devboxes[github_repo_link]
     else:
+        dbx = await setup_devbox_with_code_mount(github_repo_link)
         repo_name = github_repo_link.split("/")[-1]
         repo_owner = github_repo_link.split("/")[-2]
-        dbx = runloop_client.devboxes.create_and_await_running(
-            code_mounts=[{
-                "repo_name": repo_name,
-                "repo_owner": repo_owner,
-            }],
-            launch_parameters={
-                "launch_commands": [
-                    "sudo apt-get update",
-                    "sudo apt-get install -y libsqlite3-dev",
-                    "pip install --user cased-kit openai chromadb",
-                ]
-            },
-            environment_variables={
-                "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
-                "GH_TOKEN": os.environ.get("GH_TOKEN")
-            }
-        )
-        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/kit_cli.py", contents=open("cli/kit_cli.py", "r").read())
-        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/gh_cli.py", contents=open("cli/gh_cli.py", "r").read())
-        runloop_client.devboxes.write_file_contents(dbx.id, file_path="/home/user/traced_pytest_cli.py", contents=open("cli/traced_pytest_cli.py", "r").read())
         running_devboxes[github_repo_link] = {
             "id": dbx.id,
             "repo_map_path": get_generated_repo_map_path(repo_name),
