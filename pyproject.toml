@@ -1,7 +1,7 @@
 [project]
 name = "weather"
 version = "0.1.0"
-description = "A simple MCP weather server"
+description = "A simple MCP server, running on Runloop devboxes"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
