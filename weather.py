@@ -43,23 +43,26 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
     snapshots_list = runloop_client.devboxes.list_disk_snapshots(
         extra_query={"search": "runloop-example-code-understanding-with-mcp"}
     )
-    dbx = None
 
-    if snapshots_list and len(snapshots_list.snapshots) > 0:
-        if (
-            snapshots_list.snapshots[0].name
-            == "runloop-example-code-understanding-with-mcp"
-        ):
-            snapshot = snapshots_list.snapshots[0]
-            dbx = runloop_client.devboxes.create_and_await_running(
-                snapshot_id=snapshot.id
-            )
+    if (
+        snapshots_list
+        and len(snapshots_list.snapshots) > 0
+        and snapshots_list.snapshots[0].name
+        == "runloop-example-code-understanding-with-mcp"
+    ):
+
+        snapshot = snapshots_list.snapshots[0]
+        dbx = runloop_client.devboxes.create_and_await_running(snapshot_id=snapshot.id)
     else:
+        print("No snapshot found, setting up new devbox")
         dbx = setup_devbox()
+        print(f"Devbox created: {dbx}")
 
+    print(f"Cloning repo {github_repo_link}")
     # Clone the repo
     runloop_client.devboxes.execute_sync(
-        dbx.id, command=f"git clone {github_repo_link}"
+        dbx.id,
+        command=f"git clone https://{os.environ.get('GH_TOKEN')}@github.com/{github_repo_link.split('github.com/')[-1]}",
     )
 
     # Generate the repo map
@@ -74,8 +77,10 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
 # Launch a devbox with the code mount.
 async def launch_devbox_with_code_mount(github_repo_link: str):
     if github_repo_link in running_devboxes:
+        print(f"Devbox for {github_repo_link} already running")
         return running_devboxes[github_repo_link]
     else:
+        print(f"Setting up devbox for {github_repo_link}")
         dbx = await setup_devbox_with_code_mount(github_repo_link)
         repo_name = github_repo_link.split("/")[-1]
         repo_owner = github_repo_link.split("/")[-2]
@@ -97,7 +102,7 @@ async def basic_code_understanding(github_link: str, query: str):
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"Load the repository {github_link} and using the repo map and possibly the file tree, answer the question: {query}. You have the tool execute_command_on_devbox to execute shell commands on the devbox.",
+                    text=f"Use code understanding tools on the github repo {github_link} and using the repo map and possibly the file tree, answer the question: {query}. You have the tool execute_command_on_devbox to execute shell commands on the devbox.",
                 ),
             )
         ]
@@ -112,14 +117,14 @@ async def static_code_understanding(github_link: str, query: str):
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"Load the repository {github_link} and repo map for it",
+                    text=f"Use code understanding tools on the github repo {github_link} and repo map for it",
                 ),
             ),
             types.PromptMessage(
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"You have access to the tools run_kit_cli_get_file_tree, run_kit_cli_extract_symbols, and semantic_code_search. Parse the query: {query} and use the best tool or combination of tools to answer the question.",
+                    text=f"You have access to the tools run_kit_cli_get_file_tree, run_kit_cli_extract_symbols, and semantic_code_search. Parse the query: {query} and use the best tool or combination of tools to answer the question. If required, pass {github_link} to the tools.",
                 ),
             ),
         ]
@@ -134,14 +139,14 @@ async def historical_code_understanding(github_link: str, query: str):
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"Load the repository {github_link} and repo map for it",
+                    text=f"Use code understanding tools on the github repo {github_link} and repo map for it",
                 ),
             ),
             types.PromptMessage(
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"Using the tool github_history_semantic_search, which returns relevant files to the query: {query}, respond to the query: {query} using the most relevant files.",
+                    text=f"Using the tool github_history_semantic_search, which returns relevant files to the query: {query}, respond to the query: {query} using the most relevant files. If required, pass {github_link} to the tools.",
                 ),
             ),
         ]
@@ -156,7 +161,7 @@ async def dynamic_code_understanding(github_link: str, query: str):
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"Load the repository {github_link} and repo map for it",
+                    text=f"Use code understanding tools on the github repo {github_link} and repo map for it",
                 ),
             ),
             types.PromptMessage(
