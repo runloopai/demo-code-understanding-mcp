@@ -8,13 +8,15 @@ This project implements a Model Context Protocol (MCP) server for code understan
 
 ## Required Environment Variables
 
-Set the following environment variables before running the server:
+Set the following environment variables before running commands:
 
 - `RUNLOOP_API_KEY`: Your Runloop API key (for devbox and remote execution)
 - `OPENAI_API_KEY`: Your OpenAI API key (for embeddings)
 - `GH_TOKEN`: Your GitHub API token (for accessing private/public repos)
 
 ## Configuration Example
+
+Run `runloop_mcp_config_setup.py` locally to add the mcp config to your `claude_desktop_config.json` OR
 
 See `example_claude_desktop_config.json` for a sample configuration to launch the MCP server with the required environment variables:
 
@@ -34,6 +36,10 @@ See `example_claude_desktop_config.json` for a sample configuration to launch th
 }
 ```
 See [https://modelcontextprotocol.io/quickstart/user](https://modelcontextprotocol.io/quickstart/user) for how to connect this MCP to your Claude Desktop client!
+
+## Running the mcp server
+
+You can run `runloop_snapshot_setup.py` to add a fully configured snapshot to your account.
 
 
 ## Available Tools
