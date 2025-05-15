@@ -192,7 +192,7 @@ async def run_pytest_call_trace(github_link: str, test_name: str):
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
     # Run traced_pytest_cli.py with pytest to run the specific test
-    cmd = f"cd {get_repo_path(repo_name)} && python /home/user/traced_pytest_cli.py -k {test_name}"
+    cmd = f"cd {get_repo_path(repo_name)} && python /home/user/traced_pytest_cli.py --trace-package {test_name}"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cmd)
     return result.stdout
 
