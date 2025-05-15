@@ -65,7 +65,7 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
     # Clone the repo
     runloop_client.devboxes.execute_sync(
         dbx.id,
-        command=f"git clone https://{os.environ.get('GH_TOKEN')}@github.com/{github_repo_link.split('github.com/')[-1]}",
+        command=f"git clone https://github:{os.environ.get('GH_TOKEN')}@github.com/{github_repo_link.split('github.com/')[-1]}",
     )
 
     # Generate the repo map

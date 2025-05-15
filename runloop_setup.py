@@ -15,9 +15,10 @@ def setup_devbox(name: str | None = None):
             "launch_commands": [
                 "sudo apt-get update",
                 "sudo apt-get install -y libsqlite3-dev",
-                "echo 'Installing pip dependencies cased-kit, openai, chromadb'",
-                "pip install --user cased-kit openai chromadb",
+                "echo 'Installing pip dependencies'",
+                "pip install --user cased-kit openai chromadb pytest",
                 "echo 'Installing aider'",
+                "wget -qO- https://aider.chat/install.sh | sh",
                 "echo 'Setting up environment variables'",
                 "echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc",  # Add to .bashrc
                 "source ~/.bashrc",  # Reload the profile
