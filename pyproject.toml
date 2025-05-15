@@ -8,6 +8,7 @@ dependencies = [
     "cased-kit>=0.2.1",
     "httpx>=0.28.1",
     "mcp[cli]>=1.2.0",
+    "pytest>=8.3.5",
     "runloop-api-client>=0.32.0",
 ]
 

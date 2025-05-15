@@ -43,7 +43,7 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
     snapshots_list = runloop_client.devboxes.list_disk_snapshots(
         extra_query={"search": "runloop-example-code-understanding-with-mcp"}
     )
-    dbx_name = f"{repo_name}-mcp-understanding-devbox"
+    dbx_name = f"/{repo_name}/mcp-understanding-devbox"
 
     if (
         snapshots_list
@@ -171,7 +171,7 @@ async def dynamic_code_understanding(github_link: str, query: str):
                 role="user",
                 content=types.TextContent(
                     type="text",
-                    text=f"Using the tool run_pytest_call_trace, which returns the call trace for a specific Python test, respond to the query: {query} after running relevant tests.",
+                    text=f"Using the tool run_pytest_call_trace, which returns the call trace for a specific Python test, respond to the query: {query} after running relevant tests. A relevant test is one that is related to the query and exists as a .py file in the repo. If there are no relevant tests, respond with 'No relevant tests found'.",
                 ),
             ),
         ]
@@ -312,12 +312,12 @@ async def github_history_semantic_search(github_link: str, query: str, top_k: in
 
 
 @mcp.tool()
-async def run_pytest_call_trace(github_link: str, test_name: str):
+async def run_pytest_call_trace(github_link: str, test_file: str):
     """
     Run traced_pytest_cli.py in the devbox to get the call trace for a specific Python test.
     Args:
         github_link: Link to the GitHub repository
-        test_name: The name of the test function to trace (e.g., test_my_feature)
+        test_file: The name of the test function to trace (e.g., test_my_feature)
     Returns:
         The call trace output as a string.
     """
@@ -325,7 +325,7 @@ async def run_pytest_call_trace(github_link: str, test_name: str):
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
     # Run traced_pytest_cli.py with pytest to run the specific test
-    cmd = f"cd {get_repo_path(repo_name)} && python /home/user/traced_pytest_cli.py --trace-package {test_name}"
+    cmd = f"cd {get_repo_path(repo_name)} && python /home/user/traced_pytest_cli.py --trace-package {test_file}"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cmd)
     return result.stdout
 
