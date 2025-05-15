@@ -79,7 +79,7 @@ def main():
         # Lazy-load the vector index only when needed to save resources
         if vector_searcher is None:
             # Store index in user's home directory for persistence between runs
-            vector_searcher = build_index(".", "/home/user/.kit/my_index")
+            vector_searcher = build_index()
 
         # Perform semantic search with the provided query
         results = vector_searcher.search(args.query, args.top_k)
