@@ -13,6 +13,7 @@ mcp = FastMCP(
     settings={"capabilities": {"prompts": {"listChanged": True}}},
 )
 
+# Initialize the Runloop API client with the API key from the environment
 runloop_client = Runloop(bearer_token=os.environ.get("RUNLOOP_API_KEY"))
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
@@ -39,7 +40,7 @@ def get_generated_repo_map_cmd(repo_name: str):
 # Public devbox setup.
 async def setup_devbox_with_code_mount(github_repo_link: str):
     repo_name = github_repo_link.split("/")[-1]
-    # check if snapshot exists, if so create a new devbox from it
+    # List disk snapshots for the devbox image (DevboxesResource.list_disk_snapshots)
     snapshots_list = runloop_client.devboxes.list_disk_snapshots(
         extra_query={"search": "runloop-example-code-understanding-with-mcp"}
     )
@@ -51,24 +52,25 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
         and snapshots_list.snapshots[0].name
         == "runloop-example-code-understanding-with-mcp"
     ):
-
+        # Create a devbox from a snapshot and wait for it to be running (DevboxesResource.create_and_await_running)
         snapshot = snapshots_list.snapshots[0]
         dbx = runloop_client.devboxes.create_and_await_running(
             snapshot_id=snapshot.id, name=dbx_name
         )
     else:
         print("No snapshot found, setting up new devbox")
+        # Create a new devbox from scratch (custom setup function)
         dbx = setup_devbox(dbx_name)
         print(f"Devbox created: {dbx}")
 
     print(f"Cloning repo {github_repo_link}")
-    # Clone the repo
+    # Execute a shell command in the devbox to clone the repo (DevboxesResource.execute_sync)
     runloop_client.devboxes.execute_sync(
         dbx.id,
         command=f"git clone https://github:{os.environ.get('GH_TOKEN')}@github.com/{github_repo_link.split('github.com/')[-1]}",
     )
 
-    # Generate the repo map
+    # Generate the repo map using aider in the devbox (DevboxesResource.execute_sync)
     runloop_client.devboxes.execute_sync(
         dbx.id,
         command=f"cd {get_repo_path(repo_name)} && aider --model o3-mini --api-key openai={OPENAI_API_KEY} --yes-always --no-gitignore --show-repo-map > {get_generated_repo_map_path(repo_name)}",
@@ -191,6 +193,7 @@ async def execute_command_on_devbox(github_link: str, command: str):
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
+    # Execute a shell command synchronously in the devbox (DevboxesResource.execute_sync)
     result = runloop_client.devboxes.execute_sync(devbox_id, command=command)
     return json.dumps(result.model_dump())
 
@@ -200,19 +203,19 @@ async def generate_repo_map(github_link: str):
     devbox_id = devbox_info["id"]
     repo_map_path = devbox_info["repo_map_path"]
     repo_name = devbox_info["repo_name"]
-    # Check if repo map exists, if not generate it
+    # Check if repo map exists, if not generate it (DevboxesResource.execute_sync)
     check_file_cmd = f"test -f {repo_map_path} && echo 'exists' || echo 'not found'"
     check_result = runloop_client.devboxes.execute_sync(
         devbox_id, command=check_file_cmd
     )
 
     if "not found" in check_result.stdout:
-        # Generate the repo map
+        # Generate the repo map (DevboxesResource.execute_sync)
         runloop_client.devboxes.execute_sync(
             devbox_id, command=get_generated_repo_map_cmd(repo_name)
         )
 
-    # Read and return the repo map contents
+    # Read and return the repo map contents (DevboxesResource.execute_sync)
     cat_cmd = f"cat {repo_map_path}"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cat_cmd)
     repo_map = result.stdout
@@ -238,6 +241,7 @@ async def run_kit_cli_get_file_tree(github_link: str):
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
     file_tree_path = devbox_info["file_tree_path"]
+    # Run the kit_cli.py script in the devbox to get the file tree (DevboxesResource.execute_sync)
     result = runloop_client.devboxes.execute_sync(
         devbox_id,
         command=f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py file-tree > {file_tree_path} && cat {file_tree_path}",
@@ -258,6 +262,7 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
+    # Run the kit_cli.py script in the devbox to extract symbols (DevboxesResource.execute_sync)
     cmd = (
         f"cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py extract-symbols"
     )
@@ -282,6 +287,7 @@ async def semantic_code_search(github_link: str, query: str, top_k: int = 5):
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
+    # Run the kit_cli.py script in the devbox to perform semantic code search (DevboxesResource.execute_sync)
     result = runloop_client.devboxes.execute_sync(
         devbox_id,
         command=f'cd {get_repo_path(repo_name)} && python /home/user/kit_cli.py semantic-code-search --query "{query}" --top_k {top_k}',
@@ -304,6 +310,7 @@ async def github_history_semantic_search(github_link: str, query: str, top_k: in
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
+    # Run the gh_cli.py script in the devbox to perform PR semantic search (DevboxesResource.execute_sync)
     result = runloop_client.devboxes.execute_sync(
         devbox_id,
         command=f'cd {get_repo_path(repo_name)} && python /home/user/gh_cli.py semantic-search --query "{query}" --top_k {top_k}',
@@ -324,7 +331,7 @@ async def run_pytest_call_trace(github_link: str, test_file: str):
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
     repo_name = devbox_info["repo_name"]
-    # Run traced_pytest_cli.py with pytest to run the specific test
+    # Run traced_pytest_cli.py in the devbox to get the call trace (DevboxesResource.execute_sync)
     cmd = f"cd {get_repo_path(repo_name)} && python /home/user/traced_pytest_cli.py --trace-package {test_file}"
     result = runloop_client.devboxes.execute_sync(devbox_id, command=cmd)
     return result.stdout

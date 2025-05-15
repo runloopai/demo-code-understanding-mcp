@@ -2873,7 +2873,7 @@ wheels = [
 ]
 
 [[package]]
-name = "weather"
+name = "rl_mcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -2881,6 +2881,7 @@ dependencies = [
     { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
     { name = "pytest" },
+    { name = "rich" },
     { name = "runloop-api-client" },
 ]
 
@@ -2890,6 +2891,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.2.0" },
     { name = "pytest", specifier = ">=8.3.5" },
+    { name = "rich", specifier = ">=13.9.4" },
     { name = "runloop-api-client", specifier = ">=0.32.0" },
 ]
 
