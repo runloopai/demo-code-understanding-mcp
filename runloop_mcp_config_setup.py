@@ -13,9 +13,24 @@ def add_mcp_server_entry(config_path: str, server_name: str, new_entry: dict):
     else:
         raise Exception(f"Server {server_name} already exists in mcpServers")
 
+    # Ask for user approval before writing
+    print(
+        f"About to update {config_path} with the following entry for '{server_name}':"
+    )
+    print(json.dumps(new_entry, indent=2))
+    approval = (
+        input("Do you want to proceed with updating the config? [y/N]: ")
+        .strip()
+        .lower()
+    )
+    if approval not in ("y", "yes"):
+        print("Update cancelled by user.")
+        return
+
     # Write back the updated config
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
+    print("Config updated successfully.")
 
 
 if __name__ == "__main__":
@@ -44,6 +59,5 @@ if __name__ == "__main__":
 
     try:
         add_mcp_server_entry(config_path, server_name, new_server_entry)
-        print(f"Successfully added {server_name} to mcpServers")
     except Exception as e:
         print(f"Error updating config: {str(e)}")
