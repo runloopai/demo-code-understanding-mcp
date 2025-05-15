@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # The new server entry you want to add
     new_server_entry = {
         "command": "PATH TO UV/PYTHON ENVIRONMENT",
-        "args": ["--directory", "PATH TO DEMO REPO", "run", "weather.py"],
+        "args": ["--directory", "PATH TO DEMO REPO", "run", "rl_mcp.py"],
         "env": {
             "RUNLOOP_API_KEY": RUNLOOP_API_KEY,
             "OPENAI_API_KEY": OPENAI_API_KEY,

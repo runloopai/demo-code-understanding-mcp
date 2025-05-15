@@ -25,7 +25,7 @@ See `example_claude_desktop_config.json` for a sample configuration to launch th
   "mcpServers": {
     "code-understanding": {
       "command": "/PATH_TO_YOUR_VENV/bin/uv",
-      "args": ["--directory", "/CURRENT_FOLDER_PATH", "run", "weather.py"],
+      "args": ["--directory", "/CURRENT_FOLDER_PATH", "run", "rl_mcp.py"],
       "env": {
         "RUNLOOP_API_KEY": "YOUR_RUNLOOP_API_KEY",
         "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY",

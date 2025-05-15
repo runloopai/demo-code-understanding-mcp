@@ -46,6 +46,7 @@ def setup_devbox(name: str | None = None):
     info(
         f"Creating devbox: {name or 'runloop-example-code-understanding-with-mcp'} ..."
     )
+    # Create a new devbox and wait for it to be running (DevboxesResource.create_and_await_running)
     dbx = runloop_client.devboxes.create_and_await_running(
         name=name or "runloop-example-code-understanding-with-mcp",
         launch_parameters={
@@ -85,6 +86,7 @@ def setup_devbox(name: str | None = None):
 
             with open(source_path, "r") as f:
                 contents = f.read()
+                # Write file contents to the devbox (DevboxesResource.write_file_contents)
                 runloop_client.devboxes.write_file_contents(
                     dbx.id, file_path=f"/home/user/{target_path}", contents=contents
                 )
@@ -93,6 +95,7 @@ def setup_devbox(name: str | None = None):
             error(f"Error copying {source_path}: {str(e)}")
 
     info("Testing devbox setup ...")
+    # Execute a shell command synchronously in the devbox (DevboxesResource.execute_sync)
     runloop_client.devboxes.execute_sync(
         dbx.id,
         command="echo 'Setup complete! Moving to next step...'",
@@ -115,10 +118,12 @@ def setup_devbox_with_dependencies():
             "github_repo_link": "https://github.com/runloopai/runloop-example-code-understanding",
             "description": snapshot_description,
         }
+        # Create a disk snapshot of the devbox (DevboxesResource.snapshot_disk)
         snapshot = runloop_client.devboxes.snapshot_disk(
             id=dbx.id,
             name="runloop-example-code-understanding-with-mcp",
             metadata=snapshot_metadata,
+            timeout=600,
         )
         success(f"Snapshot created: {snapshot.id}")
     except Exception as e:
@@ -126,6 +131,7 @@ def setup_devbox_with_dependencies():
         return dbx, None
 
     info("Shutting down devbox ...")
+    # Shutdown the devbox (DevboxesResource.shutdown)
     runloop_client.devboxes.shutdown(dbx.id)
     success("Devbox shutdown complete.")
 

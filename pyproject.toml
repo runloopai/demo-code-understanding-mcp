@@ -1,5 +1,5 @@
 [project]
-name = "weather"
+name = "rl_mcp"
 version = "0.1.0"
 description = "A simple MCP server, running on Runloop devboxes"
 readme = "README.md"
@@ -18,5 +18,5 @@ requires = [ "hatchling",]
 build-backend = "hatchling.build"
 
 [project.scripts]
-weather = "weather:main"
+rl_mcp = "rl_mcp:main"
 
