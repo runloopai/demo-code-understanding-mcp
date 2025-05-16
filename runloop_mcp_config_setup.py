@@ -25,19 +25,34 @@ def add_mcp_server_entry(config_path: str, server_name: str, new_entry: dict):
     )
     if approval not in ("y", "yes"):
         print("Update cancelled by user.")
-        return
+        return False
 
     # Write back the updated config
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
-    print("Config updated successfully.")
+    print(f"Config updated successfully: {config_path}")
+    return True
+
+
+def choose_config_path():
+    print("Which config do you want to update?")
+    print("1. Claude (~/Library/Application Support/Claude/claude_desktop_config.json)")
+    print("2. Cursor (~/.cursor/mcp.json)")
+    choice = input("Enter 1 for Claude or 2 for Cursor [1/2]: ").strip()
+    if choice == "2":
+        config_path = os.path.expanduser("~/.cursor/mcp.json")
+        config_name = "cursor"
+    else:
+        config_path = os.path.expanduser(
+            "~/Library/Application Support/Claude/claude_desktop_config.json"
+        )
+        config_name = "claude"
+    return config_path, config_name
 
 
 if __name__ == "__main__":
-    # Path to the config file
-    config_path = os.path.expanduser(
-        "~/Library/Application Support/Claude/claude_desktop_config.json"
-    )
+    # Choose config
+    config_path, config_name = choose_config_path()
 
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
     GH_TOKEN = os.environ.get("GH_TOKEN", "YOUR_GH_TOKEN")
@@ -58,6 +73,10 @@ if __name__ == "__main__":
     server_name = "code-understanding"
 
     try:
-        add_mcp_server_entry(config_path, server_name, new_server_entry)
+        updated = add_mcp_server_entry(config_path, server_name, new_server_entry)
+        if updated:
+            print(f"Successfully added {server_name} to {config_name} config.")
+        else:
+            print(f"No changes made to {config_name} config.")
     except Exception as e:
         print(f"Error updating config: {str(e)}")
