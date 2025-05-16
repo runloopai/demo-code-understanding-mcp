@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 
 
 def add_mcp_server_entry(config_path: str, server_name: str, new_entry: dict):
@@ -60,8 +61,13 @@ if __name__ == "__main__":
 
     # The new server entry you want to add
     new_server_entry = {
-        "command": "PATH TO UV/PYTHON ENVIRONMENT",
-        "args": ["--directory", "PATH TO DEMO REPO", "run", "rl_mcp.py"],
+        "command": subprocess.run(
+            ["which", "uv"], capture_output=True, text=True
+        ).stdout.strip()
+        or subprocess.run(
+            ["which", "python"], capture_output=True, text=True
+        ).stdout.strip(),
+        "args": ["--directory", os.getcwd(), "run", "rl_mcp.py"],
         "env": {
             "RUNLOOP_API_KEY": RUNLOOP_API_KEY,
             "OPENAI_API_KEY": OPENAI_API_KEY,
