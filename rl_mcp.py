@@ -42,15 +42,14 @@ async def setup_devbox_with_code_mount(github_repo_link: str):
     repo_name = github_repo_link.split("/")[-1]
     # List disk snapshots for the devbox image (DevboxesResource.list_disk_snapshots)
     snapshots_list = runloop_client.devboxes.list_disk_snapshots(
-        extra_query={"search": "runloop-example-code-understanding-with-mcp"}
+        extra_query={"search": "demo-code-understanding-mcp"}
     )
     dbx_name = f"/{repo_name}/mcp-understanding-devbox"
 
     if (
         snapshots_list
         and len(snapshots_list.snapshots) > 0
-        and snapshots_list.snapshots[0].name
-        == "runloop-example-code-understanding-with-mcp"
+        and snapshots_list.snapshots[0].name == "demo-code-understanding-mcp"
     ):
         # Create a devbox from a snapshot and wait for it to be running (DevboxesResource.create_and_await_running)
         snapshot = snapshots_list.snapshots[0]

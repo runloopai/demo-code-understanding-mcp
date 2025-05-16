@@ -43,12 +43,10 @@ GH_TOKEN = os.environ.get("GH_TOKEN")
 
 
 def setup_devbox(name: str | None = None):
-    info(
-        f"Creating devbox: {name or 'runloop-example-code-understanding-with-mcp'} ..."
-    )
+    info(f"Creating devbox: {name or 'demo-code-understanding-mcp'} ...")
     # Create a new devbox and wait for it to be running (DevboxesResource.create_and_await_running)
     dbx = runloop_client.devboxes.create_and_await_running(
-        name=name or "runloop-example-code-understanding-with-mcp",
+        name=name or "demo-code-understanding-mcp",
         launch_parameters={
             "launch_commands": [
                 "sudo apt-get update",
@@ -66,7 +64,7 @@ def setup_devbox(name: str | None = None):
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
             "GH_TOKEN": os.environ.get("GH_TOKEN"),
         },
-        metadata={"github_repo": "runloopai/runloop-example-code-understanding"},
+        metadata={"github_repo": "runloopai/demo-code-understanding-mcp"},
     )
     success(f"Devbox created: {dbx.id}")
     info("Copying CLI files to devbox ...")
@@ -111,17 +109,15 @@ def setup_devbox_with_dependencies():
 
     # Create snapshot
     try:
-        snapshot_description = (
-            f"Initial setup for runloop-example-code-understanding-with-mcp"
-        )
+        snapshot_description = f"Initial setup for demo-code-understanding-mcp"
         snapshot_metadata = {
-            "github_repo_link": "https://github.com/runloopai/runloop-example-code-understanding",
+            "github_repo_link": "https://github.com/runloopai/demo-code-understanding-mcp",
             "description": snapshot_description,
         }
         # Create a disk snapshot of the devbox (DevboxesResource.snapshot_disk)
         snapshot = runloop_client.devboxes.snapshot_disk(
             id=dbx.id,
-            name="runloop-example-code-understanding-with-mcp",
+            name="demo-code-understanding-mcp",
             metadata=snapshot_metadata,
             timeout=600,
         )
