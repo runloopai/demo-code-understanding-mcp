@@ -189,6 +189,8 @@ async def execute_command_on_devbox(github_link: str, command: str):
     Args:
         github_link: link to a github repo
         command: command to execute on the devbox
+    Returns:
+        JSON string of the result of the command from stdout.
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
@@ -225,6 +227,11 @@ async def generate_repo_map(github_link: str):
 async def read_repo_map(github_link: str):
     """
     Generate and read the repo map for a github repo to aid in understanding the repo.
+
+    Args:
+        github_link: Link to the GitHub repository
+    Returns:
+        JSON string of the repo map.
     """
     repo_map = await generate_repo_map(github_link)
 
@@ -235,6 +242,11 @@ async def read_repo_map(github_link: str):
 async def run_kit_cli_get_file_tree(github_link: str):
     """
     Run the kit cli with the file-tree argument to return a json object of the file tree.
+
+    Args:
+        github_link: Link to the GitHub repository
+    Returns:
+        JSON string of the file tree.
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
@@ -257,6 +269,8 @@ async def run_kit_cli_extract_symbols(github_link: str, file: str | None = None)
     Args:
         github_link: Link to the GitHub repository
         file: Optional file path relative to repo root to extract symbols from
+    Returns:
+        JSON string of symbols from the file.
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
@@ -302,9 +316,8 @@ async def github_history_semantic_search(github_link: str, query: str, top_k: in
         github_link: GitHub repo in the form owner/repo
         query: Natural language search query
         top_k: Number of top results to return
-        collection: ChromaDB collection name (default: github_prs)
     Returns:
-        JSON string of top matching PRs with metadata and score.
+        JSON string of files from the top matching PR with metadata and score.
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]
@@ -325,7 +338,7 @@ async def run_pytest_call_trace(github_link: str, test_file: str):
         github_link: Link to the GitHub repository
         test_file: The name of the test function to trace (e.g., test_my_feature)
     Returns:
-        The call trace output as a string.
+        The call trace output for a specific test as a string.
     """
     devbox_info = await launch_devbox_with_code_mount(github_link)
     devbox_id = devbox_info["id"]

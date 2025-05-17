@@ -82,7 +82,7 @@ def main():
             vector_searcher = build_index()
 
         # Perform semantic search with the provided query
-        results = vector_searcher.search(args.query, args.top_k)
+        results = vector_searcher.search(args.query, int(args.top_k))
         sys.stdout.write(json.dumps(results, indent=2) + "\n")
         sys.stdout.flush()
     else:

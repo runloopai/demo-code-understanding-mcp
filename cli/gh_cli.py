@@ -4,7 +4,8 @@ import json
 import chromadb
 
 # Using a constant for collection name makes it easy to change in one place
-COLLECTION_NAME = "github_prs"  
+COLLECTION_NAME = "github_prs"
+
 
 class GitHubHistoryEmbedder:
     def __init__(self, chroma_collection: str = COLLECTION_NAME):
@@ -18,9 +19,7 @@ class GitHubHistoryEmbedder:
     def get_prs(self):
         # Get all PRs (closed and open) for the repo
         # Using GitHub CLI (gh) for authentication and API access
-        cmd = [
-            "gh", "pr", "list", "--state", "all", "--json", "number,title,body"
-        ]
+        cmd = ["gh", "pr", "list", "--state", "all", "--json", "number,title,body"]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
 
@@ -47,17 +46,21 @@ class GitHubHistoryEmbedder:
             # Using PR number as unique ID with prefix for clarity
             self.collection.add(
                 documents=[text],
-                metadatas=[{"pr_number": pr_number, "title": title, "files": ",".join(files)}],
-                ids=[f"pr-{pr_number}"]
+                metadatas=[
+                    {"pr_number": pr_number, "title": title, "files": ",".join(files)}
+                ],
+                ids=[f"pr-{pr_number}"],
             )
-        print(f"Embedded {len(prs)} PRs into Chroma collection '{self.collection.name}'")
+        print(
+            f"Embedded {len(prs)} PRs into Chroma collection '{self.collection.name}'"
+        )
 
     def semantic_search(self, query, top_k=5):
         # Embed the query and search Chroma
         # ChromaDB handles the embedding and similarity search internally
         results = self.collection.query(
             query_texts=[query],
-            n_results=top_k,
+            n_results=int(top_k),
         )
         # Format results for output
         hits = []
@@ -73,21 +76,28 @@ class GitHubHistoryEmbedder:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Embed GitHub PR history using ChromaDB and search it semantically")
+    parser = argparse.ArgumentParser(
+        description="Embed GitHub PR history using ChromaDB and search it semantically"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Only semantic search command
     # Could be extended with more commands in the future
-    parser_search = subparsers.add_parser("semantic-search", help="Semantic search over PR embeddings")
+    parser_search = subparsers.add_parser(
+        "semantic-search", help="Semantic search over PR embeddings"
+    )
     parser_search.add_argument("--query", required=True, help="Search query")
-    parser_search.add_argument("--top_k", type=int, default=5, help="Number of top results to return")
+    parser_search.add_argument(
+        "--top_k", type=int, default=5, help="Number of top results to return"
+    )
 
     args = parser.parse_args()
 
-    embedder = GitHubHistoryEmbedder()    
+    embedder = GitHubHistoryEmbedder()
 
     if args.command == "semantic-search":
         embedder.semantic_search(args.query, args.top_k)
+
 
 if __name__ == "__main__":
     main()
