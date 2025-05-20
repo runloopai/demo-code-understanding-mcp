@@ -1,4 +1,4 @@
-# A Simple MCP Server written in Python, running remotely via Runloop devboxes
+# A Simple MCP Server written in Python, running remotely via Runloop Devboxes
 
 See the [Quickstart](https://modelcontextprotocol.io/quickstart) tutorial for more information.
 
